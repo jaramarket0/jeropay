@@ -24,11 +24,8 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
     super.initState();
     controller = Get.put(ForgetPasswordController());
   }
-  final RegExp nameExp = RegExp(r'^[A-Za-z]+$');
-  final RegExp usernameExp = RegExp(r'^[a-zA-Z0-9*\-_@/\\]+$');
-  bool _firstNameInputIsValid = true;
-  bool _lastNameInputIsValid = true;
-  bool _usernameInputIsValid = true;
+  final RegExp emailExp = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+  bool _emailInputIsValid = true;
   bool _passwordVisible = false;
   bool _passwordVisible1 = false;
   // bool _numberInputIsValid = true;
@@ -159,9 +156,9 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                         ),
                       ),
                       errorText:
-                          _lastNameInputIsValid
+                          _emailInputIsValid
                               ? null
-                              : 'please enter only alphabetical characters only!',
+                              : 'Please enter a valid email address',
                       focusedBorder: kInputBorder,
                       border: kInputBorder,
                       filled: true,
@@ -170,15 +167,15 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                     onChanged: (value) {
                       if (value.isEmpty) {
                         setState(() {
-                          _lastNameInputIsValid = false;
+                          _emailInputIsValid = false;
                         });
-                      } else if (!nameExp.hasMatch(value)) {
+                      } else if (!emailExp.hasMatch(value)) {
                         setState(() {
-                          _lastNameInputIsValid = false;
+                          _emailInputIsValid = false;
                         });
                       } else {
                         setState(() {
-                          _lastNameInputIsValid = true;
+                          _emailInputIsValid = true;
                         });
                       }
                     },
@@ -248,7 +245,7 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                                       ],
                                     )
                                     : Text(
-                                      'Log In',
+                                      'Send Reset Code',
                                       style: TextStyle(
                                         fontSize:
                                             SizeConfig.blockSizeHorizontal! *
