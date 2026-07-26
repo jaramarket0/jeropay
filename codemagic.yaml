@@ -1,0 +1,155 @@
+workflows:
+
+  # ─────────────────────────────────────────────
+  # Android Release  (AAB for Play Store + APK)
+  # ─────────────────────────────────────────────
+  android-release:
+    name: Android Release
+    max_build_duration: 60
+    instance_type: linux_x2
+
+    environment:
+      flutter: 3.38.1
+      java: 17
+      # All secrets live in a Codemagic environment variable group called
+      # "jeropay_credentials" — see SETUP GUIDE below.
+      groups:
+        - jeropay_credentials
+      vars:
+        PACKAGE_NAME: com.jeropay.ng.jeropay
+
+    scripts:
+      - name: Decode keystore
+        script: |
+          echo "$CM_KEYSTORE" | base64 --decode \
+            > "$CM_BUILD_DIR/android/jeropay-upload-keystore.jks"
+
+      - name: Write key.properties
+        script: |
+          cat > "$CM_BUILD_DIR/android/key.properties" <<EOF
+          storeFile=../jeropay-upload-keystore.jks
+          storePassword=$CM_STORE_PASSWORD
+          keyAlias=$CM_KEY_ALIAS
+          keyPassword=$CM_KEY_PASSWORD
+          EOF
+
+      - name: Decode google-services.json
+        script: |
+          echo "$GOOGLE_SERVICES_JSON" | base64 --decode \
+            > "$CM_BUILD_DIR/android/app/google-services.json"
+
+      - name: Flutter pub get
+        script: flutter pub get
+
+      - name: Build App Bundle (Play Store)
+        script: |
+          flutter build appbundle \
+            --release \
+            --build-number=$PROJECT_BUILD_NUMBER
+
+      - name: Build APK (direct install)
+        script: |
+          flutter build apk \
+            --release \
+            --build-number=$PROJECT_BUILD_NUMBER
+
+    artifacts:
+      - build/app/outputs/bundle/release/app-release.aab
+      - build/app/outputs/flutter-apk/app-release.apk
+
+    publishing:
+      email:
+        recipients:
+          - howellshenry22@gmail.com
+        notify:
+          success: true
+          failure: true
+
+
+  # ─────────────────────────────────────────────
+  # Android Debug  (quick smoke-build on every push)
+  # ─────────────────────────────────────────────
+  android-debug:
+    name: Android Debug
+    max_build_duration: 30
+    instance_type: linux_x2
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+
+    environment:
+      flutter: 3.38.1
+      java: 17
+      groups:
+        - jeropay_credentials
+
+    scripts:
+      - name: Decode google-services.json
+        script: |
+          echo "$GOOGLE_SERVICES_JSON" | base64 --decode \
+            > "$CM_BUILD_DIR/android/app/google-services.json"
+
+      - name: Flutter pub get
+        script: flutter pub get
+
+      - name: Build debug APK
+        script: flutter build apk --debug
+
+    artifacts:
+      - build/app/outputs/flutter-apk/app-debug.apk
+
+    publishing:
+      email:
+        recipients:
+          - howellshenry22@gmail.com
+        notify:
+          success: false   # only email on failure for debug
+          failure: true
+
+
+# ═══════════════════════════════════════════════════════════════
+# SETUP GUIDE — do this once in the Codemagic UI
+# ═══════════════════════════════════════════════════════════════
+#
+# 1. In Codemagic → Team settings → Environment variable groups
+#    Create a group named:  jeropay_credentials
+#    Add each variable below (mark them all as "secret"):
+#
+#    Variable name          Value
+#    ─────────────────────────────────────────────────────────
+#    CM_KEYSTORE            base64 of jeropay-upload-keystore.jks
+#                           Run locally:
+#                           base64 android/jeropay-upload-keystore.jks | tr -d '\n'
+#
+#    CM_STORE_PASSWORD      your keystore password
+#    CM_KEY_ALIAS           upload
+#    CM_KEY_PASSWORD        your key password
+#
+#    GOOGLE_SERVICES_JSON   base64 of android/app/google-services.json
+#                           Run locally:
+#                           base64 android/app/google-services.json | tr -d '\n'
+#
+# 2. In Codemagic → Apps → connect this GitHub/GitLab/Bitbucket repo
+#    → select "Flutter App" → choose "Use codemagic.yaml"
+#
+# 3. To trigger a release build manually:
+#    Codemagic → your app → Start new build → select "android-release"
+#
+# 4. The debug workflow triggers automatically on every push to main.
+#
+# ═══════════════════════════════════════════════════════════════
+# SECURITY NOTES
+# ═══════════════════════════════════════════════════════════════
+#
+# • android/key.properties   — add to .gitignore, do NOT commit
+# • android/jeropay-upload-keystore.jks — add to .gitignore, do NOT commit
+# • android/app/google-services.json   — add to .gitignore, do NOT commit
+#
+# Run these once to protect them going forward:
+#   echo "android/key.properties"              >> .gitignore
+#   echo "android/*.jks"                       >> .gitignore
+#   echo "android/app/google-services.json"    >> .gitignore
+#
