@@ -100,13 +100,19 @@ class _SigninScreenState extends State<SigninScreen> {
                         context,
                       ).textTheme.displaySmall?.copyWith(
                         fontSize: SizeConfig.blockSizeVertical! * 1.5,
-                        color: Colors.black,
+                        color:
+                            Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : purple,
                       ),
                       labelStyle: Theme.of(
                         context,
                       ).textTheme.displaySmall?.copyWith(
                         fontSize: SizeConfig.blockSizeVertical! * 1.5,
-                        color: Colors.black,
+                        color:
+                            Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : purple,
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -164,13 +170,19 @@ class _SigninScreenState extends State<SigninScreen> {
                         context,
                       ).textTheme.displaySmall?.copyWith(
                         fontSize: SizeConfig.blockSizeVertical! * 1.5,
-                        color: Colors.black,
+                        color:
+                            Theme.of(context).brightness == Brightness.dark
+                                ? kLightGrey
+                                : purple,
                       ),
                       labelStyle: Theme.of(
                         context,
                       ).textTheme.displaySmall?.copyWith(
                         fontSize: SizeConfig.blockSizeVertical! * 1.5,
-                        color: Colors.black,
+                        color:
+                            Theme.of(context).brightness == Brightness.dark
+                                ? kLightGrey
+                                : purple,
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),

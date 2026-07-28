@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -54,9 +55,15 @@ class SignupController extends GetxController {
   void signUpWithGoogle() async {
     isGoogleLoading.value = true;
     try {
+      // Web needs `clientId` to initialize Google Identity Services;
+      // native platforms use `serverClientId` to obtain a server auth code.
       final GoogleSignIn googleSignIn = GoogleSignIn(
-        serverClientId:
-            '876478177791-bmopjk9ireq1g8eqlus9buml0tcl5l2o.apps.googleusercontent.com',
+        clientId: kIsWeb
+            ? '876478177791-bmopjk9ireq1g8eqlus9buml0tcl5l2o.apps.googleusercontent.com'
+            : null,
+        serverClientId: kIsWeb
+            ? null
+            : '876478177791-bmopjk9ireq1g8eqlus9buml0tcl5l2o.apps.googleusercontent.com',
       );
       // Do NOT show loader here — the native Google picker is already the UX.
       // Showing an overlay before the native activity causes _dependents.isEmpty crash.

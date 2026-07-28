@@ -21,17 +21,19 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   }
 
   InputDecoration _inputDec(String label, IconData icon) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fieldColor = isDark ? kLightGrey : purple;
     return InputDecoration(
       labelText: label,
-      prefixIcon: Icon(icon, color: purple),
-      labelStyle: kEncodeSansSemiBold.copyWith(color: purple, fontSize: 13),
+      prefixIcon: Icon(icon, color: fieldColor),
+      labelStyle: kEncodeSansSemiBold.copyWith(color: fieldColor, fontSize: 13),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: purple),
+        borderSide: BorderSide(color: fieldColor),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: purple, width: 2),
+        borderSide: BorderSide(color: fieldColor, width: 2),
       ),
       filled: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 18),

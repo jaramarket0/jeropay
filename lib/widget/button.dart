@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:jeropay/config/app_style.dart';
 import 'package:jeropay/config/size_config.dart';
 
-Padding button({required text1, required isLoading1, required tap}) {
+Padding button({required text1, required isLoading1, required VoidCallback? tap}) {
   bool isLoading = isLoading1;
-  VoidCallback? tap;
   String text = text1;
   return Padding(
     padding: const EdgeInsets.symmetric(horizontal: 0.0),
