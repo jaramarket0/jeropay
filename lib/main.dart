@@ -1,5 +1,9 @@
+import 'dart:async';
+import 'dart:io' show Platform;
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -44,31 +48,24 @@ void main() async {
   // FCM background handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // Initialise local notifications
+  // Initialise local notifications. iOS/macOS permission flags are disabled
+  // here because FirebaseMessaging.requestPermission() (called later, off
+  // the startup path) is the single source of truth for the native prompt —
+  // otherwise iOS asks for notification permission twice.
   await _localNotifications.initialize(
     const InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-      iOS: DarwinInitializationSettings(),
+      iOS: DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      ),
     ),
   );
   await _localNotifications
       .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(_channel);
-
-  // Request notification permission
-  await FirebaseMessaging.instance.requestPermission(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
-
-  // iOS foreground presentation
-  await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
 
   // Show native banner when app is in the foreground
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -106,25 +103,71 @@ void main() async {
   var token = await dataBase.getToken();
   var pin = await dataBase.getTransactionPin();
 
-  // Register FCM token if user is already logged in
-  myLog.log('fcm token: method called');
-  if (token.isNotEmpty) {
-    _registerFcmToken();
-  }
   String initialRoute = (token.isNotEmpty && pin.isNotEmpty) ? '/app_security_screen' : (token.isNotEmpty && pin.isEmpty) ? '/transaction_pin_screen' : '/splash_screen';
   runApp(MyApp(initialRoute:initialRoute));
+
+  // FCM permission request + token fetch run in the background after
+  // runApp() fires. On iOS, requestPermission() shows a blocking native
+  // dialog and getToken() makes a network call that can hang — neither may
+  // ever await before runApp() or first-frame render stalls behind them.
+  unawaited(_setupFcmInBackground(isLoggedIn: token.isNotEmpty));
+}
+
+Future<void> _setupFcmInBackground({required bool isLoggedIn}) async {
+  try {
+    final fcm = FirebaseMessaging.instance;
+
+    final settings = await fcm.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    await fcm.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    if (isLoggedIn &&
+        (settings.authorizationStatus == AuthorizationStatus.authorized ||
+            settings.authorizationStatus == AuthorizationStatus.provisional)) {
+      await _registerFcmToken();
+    }
+
+    fcm.onTokenRefresh.listen((newToken) {
+      myLog.log('fcm token refreshed: $newToken');
+      final api = ApiService(const Duration(seconds: 15));
+      api.registerFcmToken(newToken);
+    });
+  } catch (e) {
+    myLog.log('FCM setup error: $e');
+  }
 }
 
 Future<void> _registerFcmToken() async {
-
   try {
-    final fcmToken = await FirebaseMessaging.instance.getToken();
+    final fcm = FirebaseMessaging.instance;
+    String? fcmToken;
+
+    // On iOS, getToken() can fail/hang if the APNS token isn't set yet
+    // (common on the simulator or early in launch) — skip until it is.
+    if (!kIsWeb && Platform.isIOS && await fcm.getAPNSToken() == null) {
+      myLog.log('APNS token not yet available; skipping FCM token fetch.');
+    } else {
+      fcmToken = await fcm
+          .getToken()
+          .timeout(const Duration(seconds: 20), onTimeout: () => null);
+    }
+
     if (fcmToken != null) {
       myLog.log('fcm token: $fcmToken');
       final api = ApiService(const Duration(seconds: 15));
       await api.registerFcmToken(fcmToken);
     }
-  } catch (_) {}
+  } catch (e) {
+    myLog.log('fcm token registration error: $e');
+  }
 }
 
 class MyApp extends StatelessWidget {
