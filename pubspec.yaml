@@ -127,7 +127,7 @@ launcher_name:
 
 
 flutter_launcher_icons:
-  image_path: "assets/images/logo-1.png"
+  image_path: "assets/images/1024.png"
   android:
     generate: true
     image_path: "assets/images/logo-1.png"
@@ -140,7 +140,7 @@ flutter_launcher_icons:
     theme_color: "#FFFFFF"
   ios:
     generate: true
-    image_path: "assets/images/logo-1.png"
+    image_path: "assets/images/1024.png"
     background_color: "#FFFFFF"
     theme_color: "#aFFFFFF"
     remove_alpha_ios: true
